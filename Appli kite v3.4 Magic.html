@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conditions Sète — Vent, Météo & Webcam</title>
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23f97316'/><g fill='%23ffffff'><circle cx='85' cy='15' r='7'/><path d='M 85 4 L 85 6 M 85 24 L 85 26 M 74 15 L 76 15 M 94 15 L 96 15 M 77 7 L 79 9 M 91 21 L 93 23 M 77 23 L 79 21 M 91 9 L 93 7' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round'/></g><g fill='%23111827'><circle cx='21' cy='22' r='10'/><path d='M 43 17 L 31 23 C 28 24, 28 28, 32 30 L 59 42 C 62 43, 65 40, 63 36 L 59 18 C 58 13, 52 12, 48 15 Z M 57 20 L 58 34 L 43 27 Z'/><path d='M 21 37 C 12 37, 5 44, 4 53 C 2 68, 12 80, 24 85 L 29 79 C 23 75, 17 68, 18 58 C 19 50, 24 46, 31 46 C 41 46, 51 39, 56 32 C 45 33, 33 37, 21 37 Z'/><path d='M 28 52 C 34 52, 43 55, 49 61 C 52 64, 55 60, 52 57 C 45 50, 36 46, 28 46 C 26 46, 26 52, 28 52 Z'/><path d='M 12 98 C 22 98, 86 64, 98 55 C 101 53, 98 48, 93 49 C 70 54, 28 78, 13 90 C 10 93, 9 98, 12 98 Z'/></g></svg>">
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --card-bg: #f9fafb;
+      --card-inner-bg: #ffffff;
+      --border-color: #e5e7eb;
+      --text-color: #111827;
+      --text-muted: #6b7280;
+      --accent-orange: #f97316;
+      --accent-orange-hover: #ea580c;
+      --border-radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 24px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--accent-orange);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .dashboard {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .card h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent-orange);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title {
+      font-size: 0.95rem;
+      color: var(--accent-orange);
+      margin: 12px 0 8px 0;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .detailed-days {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .day-box {
+      background: var(--card-inner-bg);
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    .day-box h3 {
+      font-size: 0.95rem;
+      text-align: center;
+      margin-bottom: 8px;
+      color: var(--accent-orange);
+      text-transform: capitalize;
+      font-weight: 700;
+    }
+
+    .slots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      text-align: center;
+    }
+
+    .slot {
+      background: #f3f4f6;
+      padding: 8px 4px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+
+    .slot .period {
+      font-weight: bold;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .slot .icon {
+      font-size: 1.2rem;
+      margin: 2px 0;
+    }
+
+    .slot .desc {
+      font-size: 0.7rem;
+      color: var(--text-color);
+      line-height: 1.1;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--card-inner-bg);
+    }
+
+    .arome-table {
+      border-collapse: collapse;
+      width: 100%;
+      white-space: nowrap;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .arome-table:last-child {
+      margin-bottom: 0;
+    }
+
+    .arome-table th, .arome-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-color);
+      border-right: 1px solid #f3f4f6;
+      color: var(--text-color);
+    }
+
+    .arome-table th {
+      background: #fdf2e9;
+      color: var(--accent-orange);
+      font-weight: 700;
+    }
+
+    .arome-table .day-header {
+      background: var(--accent-orange);
+      color: #ffffff;
+      font-weight: bold;
+      text-align: left;
+      padding-left: 12px;
+      text-transform: capitalize;
+    }
+
+    .windguru-container {
+      width: 100%;
+      overflow-x: auto;
+      background: #ffffff;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      color: #000;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    video {
+      width: 100%;
+      height: auto;
+      max-height: 600px;
+      display: block;
+    }
+
+    .live-box {
+      background: var(--card-inner-bg);
+      border: 1px solid var(--border-color);
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .live-box-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .live-source {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    .weight-input-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .weight-input-box input {
+      width: 55px;
+      background: #ffffff;
+      border: 1px solid var(--accent-orange);
+      color: var(--text-color);
+      text-align: center;
+      border-radius: 6px;
+      padding: 3px 4px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    .status-badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #fee2e2;
+      color: #dc2626;
+      display: inline-block;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🏄‍♂️ Conditions Sète — Vent, Météo & Webcam</h1>
+  </header>
+
+  <main class="dashboard">
+
+    <!-- 1. INFOS EN DIRECT -->
+    <section class="card">
+      <h2>🌬️ Direct Vent & Matos</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 4px;">
+        
+        <!-- Vent Temps Réel (Fallback propre si balise HS) -->
+        <div class="live-box">
+          <div class="live-box-title">VENT EN DIRECT</div>
+          <div id="live-wind-speed" style="font-size: 2rem; font-weight: 800; color: var(--accent-orange); margin: 4px 0;">-- kts</div>
+          <div id="live-wind-gust" style="font-size: 0.85rem; color: #dc2626; font-weight: 600;">Rafales : -- kts</div>
+          <div id="live-wind-dir" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Orientation : --</div>
+          <div id="live-wind-source" class="live-source">Recherche station...</div>
+        </div>
+
+        <!-- Recommandation Combinaison -->
+        <div class="live-box">
+          <div class="live-box-title">EAU & COMBINAISON</div>
+          <div id="water-temp" style="font-size: 1.8rem; font-weight: 800; color: #0284c7; margin: 4px 0;">-- °C</div>
+          <div id="wetsuit-recommendation" style="font-size: 0.9rem; color: var(--text-color); font-weight: 600;">Chargement...</div>
+        </div>
+
+        <!-- Recommandation Aile -->
+        <div class="live-box">
+          <div class="live-box-title">TAILLE D'AILE CONSEILLÉE</div>
+          <div id="kite-size-recommendation" style="font-size: 1.8rem; font-weight: 800; color: var(--accent-orange); margin: 4px 0;">-- m²</div>
+          <div id="kite-size-note" style="font-size: 0.8rem; color: var(--text-muted);">--</div>
+          
+          <div class="weight-input-box">
+            <label for="user-weight">Poids :</label>
+            <input type="number" id="user-weight" value="80" min="40" max="130" onchange="updateKiteRecommendation()">
+            <span>kg</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 2. PRÉVISIONS VENT (Windguru) -->
+    <section class="card">
+      <h2>💨 Prévisions Vent (Windguru)</h2>
+      <div class="windguru-container">
+        <div id="wg_fwdg_48595_52_1787215780407"></div>
+        <script id="wg_fwdg_48595_52_1787215780407_script">
+        (function (window, document) {
+          var loader = function () {
+            var arg = ["s=48595" ,"m=52","uid=wg_fwdg_48595_52_1787215780407" ,"wj=knots" ,"tj=c" ,"waj=m" ,"tij=cm" ,"odh=0" ,"doh=24" ,"fhours=240" ,"hrsm=1" ,"vt=forecasts" ,"lng=fr" ,"p=WINDSPD,GUST,MWINDSPD,SMER,TMP,CDC,APCP1s,RATING"];
+            var script = document.createElement("script");
+            var tag = document.getElementsByTagName("script")[0];
+            script.src = "https://www.windguru.cz/js/widget.php?"+(arg.join("&"));
+            tag.parentNode.insertBefore(script, tag);
+          };
+          window.addEventListener ? window.addEventListener("load", loader, false) : window.attachEvent("onload", loader);
+        })(window, document);
+        </script>
+      </div>
+    </section>
+
+    <!-- 3. MÉTÉO (ECMWF & AROME HD) -->
+    <section class="card">
+      <h2>🌤️ Prévisions Météo Sète</h2>
+      
+      <div style="margin-bottom: 20px;">
+        <div class="section-title">Modèle Européen ECMWF (3 Jours)</div>
+        <div id="weather-ecmwf">
+          <p style="color: var(--text-muted);">Chargement ECMWF...</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Modèle Météo-France AROME HD (Horaire 6h-23h)</div>
+        <div id="weather-arome">
+          <p style="color: var(--text-muted);">Chargement AROME HD...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. WEBCAM LIVE -->
+    <section class="card">
+      <h2>📹 Webcam Live (Sète)</h2>
+      <div class="video-container">
+        <video id="video" controls autoplay muted playsinline></video>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let globalRefWind = 0;
+
+    function parseWmoCode(code) {
+      if (code === null || code === undefined) return { desc: "Éclaircies", icon: "🌤️" };
+      const wmoMap = {
+        0: { desc: "Dégagé", icon: "☀️" },
+        1: { desc: "Peu nuageux", icon: "🌤️" },
+        2: { desc: "Éclaircies", icon: "⛅" },
+        3: { desc: "Couvert", icon: "☁️" },
+        45: { desc: "Brouillard", icon: "🌫️" },
+        61: { desc: "Pluie faible", icon: "🌧️" },
+        63: { desc: "Pluie modérée", icon: "🌧️" },
+        80: { desc: "Averses", icon: "🌦️" },
+        95: { desc: "Orage", icon: "🌩️" }
+      };
+      return wmoMap[code] || { desc: "Éclaircies", icon: "🌤️" };
+    }
+
+    function renderWeatherDays(data, maxDays) {
+      const times = data.hourly.time;
+      const temps = data.hourly.temperature_2m;
+      const codes = data.hourly.weather_code || data.hourly.weathercode;
+
+      const daysMap = {};
+      times.forEach((t, index) => {
+        const dayKey = t.split('T')[0];
+        const hour = parseInt(t.split('T')[1].split(':')[0], 10);
+
+        if (!daysMap[dayKey]) daysMap[dayKey] = {};
+        if (hour === 8) daysMap[dayKey].matin = { temp: temps[index], code: codes[index] };
+        if (hour === 13) daysMap[dayKey].midi = { temp: temps[index], code: codes[index] };
+        if (hour === 19) daysMap[dayKey].soir = { temp: temps[index], code: codes[index] };
+      });
+
+      const dayKeys = Object.keys(daysMap).slice(0, maxDays);
+      let html = '<div class="detailed-days">';
+
+      dayKeys.forEach(dayKey => {
+        const dateObj = new Date(dayKey + 'T00:00:00');
+        const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric' });
+        const d = daysMap[dayKey];
+
+        const slots = [
+          { period: "Matin", temp: d.matin ? Math.round(d.matin.temp) : '-', ...parseWmoCode(d.matin?.code) },
+          { period: "Midi", temp: d.midi ? Math.round(d.midi.temp) : '-', ...parseWmoCode(d.midi?.code) },
+          { period: "Soir", temp: d.soir ? Math.round(d.soir.temp) : '-', ...parseWmoCode(d.soir?.code) }
+        ];
+
+        html += `
+          <div class="day-box">
+            <h3>${dayName}</h3>
+            <div class="slots-grid">
+              ${slots.map(s => `
+                <div class="slot">
+                  <div class="period">${s.period}</div>
+                  <div class="icon">${s.icon}</div>
+                  <div class="desc">${s.desc}</div>
+                  <div class="temp"><strong>${s.temp}°C</strong></div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      });
+
+      html += '</div>';
+      return html;
+    }
+
+    function renderAromeHourlyTable(data) {
+      const times = data.hourly.time;
+      const temps = data.hourly.temperature_2m;
+      const codes = data.hourly.weather_code || data.hourly.weathercode;
+
+      const daysMap = {};
+      times.forEach((t, i) => {
+        const dayKey = t.split('T')[0];
+        const hourNum = parseInt(t.split('T')[1].split(':')[0], 10);
+        
+        if (hourNum < 6) return;
+
+        const hourStr = hourNum.toString().padStart(2, '0') + 'h';
+        if (!daysMap[dayKey]) daysMap[dayKey] = [];
+
+        const weatherInfo = parseWmoCode(codes[i]);
+
+        daysMap[dayKey].push({
+          hour: hourStr,
+          temp: Math.round(temps[i]),
+          icon: weatherInfo.icon,
+          desc: weatherInfo.desc
+        });
+      });
+
+      let html = '<div class="table-scroll">';
+      
+      Object.keys(daysMap).forEach(dayKey => {
+        const hoursData = daysMap[dayKey];
+        if (hoursData.length === 0) return;
+
+        const dateObj = new Date(dayKey + 'T00:00:00');
+        const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
+
+        html += `
+          <table class="arome-table">
+            <thead>
+              <tr>
+                <th colspan="${hoursData.length + 1}" class="day-header">${dayName}</th>
+              </tr>
+              <tr>
+                <th style="min-width: 90px; text-align: left;">Heure</th>
+                ${hoursData.map(h => `<th>${h.hour}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="text-align: left; font-weight: bold; color: var(--text-muted);">Météo</td>
+                ${hoursData.map(h => `<td title="${h.desc}">${h.icon}</td>`).join('')}
+              </tr>
+              <tr>
+                <td style="text-align: left; font-weight: bold; color: var(--text-muted);">Temp.</td>
+                ${hoursData.map(h => `<td><strong>${h.temp}°C</strong></td>`).join('')}
+              </tr>
+            </tbody>
+          </table>
+        `;
+      });
+
+      html += '</div>';
+      return html;
+    }
+
+    function calculateKiteSize(windKnots, weightKg) {
+      if (windKnots < 11) return { size: "Pas assez de vent", note: "Vent insuffisant (< 11 kts)" };
+
+      const weightRatio = weightKg / 75;
+      let idealBaseSize = (220 / windKnots) * weightRatio;
+      let minSize = Math.round(idealBaseSize - 1);
+      let maxSize = Math.round(idealBaseSize + 1);
+
+      if (windKnots >= 32) return { size: "5 - 6 m²", note: "Gros baston / Prudence" };
+      if (windKnots > 38) return { size: "Danger", note: "Vent extrême (> 38 kts)" };
+
+      return { 
+        size: `${Math.max(5, minSize)} - ${Math.min(17, maxSize)} m²`, 
+        note: `Calculé pour ${weightKg} kg` 
+      };
+    }
+
+    function updateKiteRecommendation() {
+      const weightInput = document.getElementById('user-weight');
+      let weight = parseInt(weightInput.value, 10) || 80;
+      
+      localStorage.setItem('userKiteWeight', weight);
+
+      if (globalRefWind > 0) {
+        const kiteAdvice = calculateKiteSize(globalRefWind, weight);
+        document.getElementById('kite-size-recommendation').innerText = kiteAdvice.size;
+        document.getElementById('kite-size-note').innerText = kiteAdvice.note;
+      }
+    }
+
+    function getWetsuitAdvice(tempC) {
+      if (tempC < 13) return "5/4 mm + Chaussons";
+      if (tempC >= 13 && tempC < 16) return "Combinaison 4/3 mm";
+      if (tempC >= 16 && tempC < 19) return "Combinaison 3/2 mm";
+      if (tempC >= 19 && tempC < 22) return "Shorty 2 mm";
+      return "Combinaison fine 2 mm / Shorty";
+    }
+
+    function getWindDirectionCardinal(deg) {
+      const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSO', 'SO', 'OSO', 'O', 'ONO', 'NO', 'NNO'];
+      return directions[Math.round(deg / 22.5) % 16];
+    }
+
+    async function fetchSpotData() {
+      const openMeteoUrl = 'https://api.open-meteo.com/v1/forecast?latitude=43.4079&longitude=3.6928&current=wind_speed_10m,wind_gusts_10m,wind_direction_10m&wind_speed_unit=kn&timezone=auto';
+      const marineUrl = 'https://marine-api.open-meteo.com/v1/marine?latitude=43.400&longitude=3.690&current=sea_surface_temperature&timezone=auto';
+
+      try {
+        const resWind = await fetch(openMeteoUrl);
+        const dataWind = await resWind.json();
+
+        const windSpeed = Math.round(dataWind.current.wind_speed_10m);
+        const windGust = Math.round(dataWind.current.wind_gusts_10m);
+        const windDirDeg = dataWind.current.wind_direction_10m;
+        const windDir = getWindDirectionCardinal(windDirDeg);
+
+        document.getElementById('live-wind-speed').innerText = `${windSpeed} kts`;
+        document.getElementById('live-wind-gust').innerText = `Rafales : ${windGust} kts`;
+        document.getElementById('live-wind-dir').innerText = `Orientation : ${windDir} (${windDirDeg}°)`;
+        document.getElementById('live-wind-source').innerHTML = `Open-Meteo Sète <br><span class="status-badge">Balise Fild'air HS (Err 500)</span>`;
+
+        globalRefWind = Math.round((windSpeed + windGust) / 2);
+      } catch (err) {
+        document.getElementById('live-wind-speed').innerText = `-- kts`;
+      }
+
+      const savedWeight = localStorage.getItem('userKiteWeight');
+      if (savedWeight) {
+        document.getElementById('user-weight').value = savedWeight;
+      }
+      updateKiteRecommendation();
+
+      try {
+        const resMarine = await fetch(marineUrl);
+        const dataMarine = await resMarine.json();
+        const waterTemp = Math.round(dataMarine.current.sea_surface_temperature);
+
+        document.getElementById('water-temp').innerText = `${waterTemp} °C`;
+        document.getElementById('wetsuit-recommendation').innerText = getWetsuitAdvice(waterTemp);
+      } catch (e) {
+        document.getElementById('water-temp').innerText = `~18 °C`;
+        document.getElementById('wetsuit-recommendation').innerText = getWetsuitAdvice(18);
+      }
+    }
+
+    async function fetchEcmwf() {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=43.4079&longitude=3.6928&hourly=temperature_2m,weathercode&models=ecmwf_ifs025&forecast_days=3&timezone=auto`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        document.getElementById('weather-ecmwf').innerHTML = renderWeatherDays(data, 3);
+      } catch (e) {
+        document.getElementById('weather-ecmwf').innerHTML = '<p style="color:#dc2626;">Indisponible</p>';
+      }
+    }
+
+    async function fetchArome() {
+      const url = `https://api.open-meteo.com/v1/meteofrance?latitude=43.4079&longitude=3.6928&hourly=temperature_2m,weather_code&forecast_days=2&timezone=auto`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        document.getElementById('weather-arome').innerHTML = renderAromeHourlyTable(data);
+      } catch (e) {
+        document.getElementById('weather-arome').innerHTML = '<p style="color:#dc2626;">Indisponible</p>';
+      }
+    }
+
+    fetchEcmwf();
+    fetchArome();
+    fetchSpotData();
+
+    document.addEventListener("DOMContentLoaded", function () {
+      var video = document.getElementById('video');
+      var videoSrc = 'https://hls-magicbruce.vpsndussourd.duckdns.org/kite_main/index.m3u8';
+
+      if (Hls.isSupported()) {
+        var hls = new Hls();
+        hls.loadSource(videoSrc);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          video.play().catch(function(e) { console.log(e); });
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = videoSrc;
+        video.addEventListener('loadedmetadata', function () {
+          video.play();
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>
